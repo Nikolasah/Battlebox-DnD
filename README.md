@@ -8,6 +8,12 @@ A combat table for D&D 5e that works like a Jackbox game. The DM runs the fight 
 | --- | --- |
 | ![DM console](docs/dm-combat.png) | ![Phone screens](docs/phones.png) |
 
+## Documentation
+
+- [Business requirements](docs/BRD.md): goals, scope, roles, the 14 requirements, visibility rules, limits and risks
+- [Session flow](docs/FLOW.md): who does what, on which screen, from lobby to end of combat
+- [Data model](docs/ERD.md): the entities, the room file on disk, and what each screen receives
+
 ## What it does
 
 - **Three screens, one room.** `/dm/CODE` is the private console, `/table/CODE` is the screen you share, `/play/CODE` is the phone controller. Everything syncs live over one WebSocket.

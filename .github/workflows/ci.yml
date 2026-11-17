@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build the image
+        run: docker build -t battlebox:ci .
+      - name: Start the container and check it answers
+        run: |
+          docker run -d --name battlebox -p 3000:3000 battlebox:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:3000/healthz; then exit 0; fi
+            sleep 1
+          done
+          docker logs battlebox
+          exit 1

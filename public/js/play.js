@@ -50,7 +50,13 @@ async function runImport(button, path, body) {
   button.disabled = false; button.textContent = label;
 }
 $('#ddbFetch').addEventListener('click', (e) => runImport(e.currentTarget, '/api/import/ddb', { ref: $('#ddbRef').value }));
-$('#jsonRead').addEventListener('click', (e) => runImport(e.currentTarget, '/api/import/json', { text: $('#jsonText').value }));
+$('#jsonRead').addEventListener('click', (e) => runImport(e.currentTarget, '/api/import/sheet', { text: $('#jsonText').value }));
+$('#sheetFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 1_000_000) { toast('That file is too large to be a character sheet.', 'bad'); return; }
+  await runImport($('#jsonRead'), '/api/import/sheet', { text: await file.text() });
+});
 // Typing over an imported number means the imported current HP no longer applies.
 jf.maxHp.addEventListener('input', () => { jf.hp.value = ''; });
 

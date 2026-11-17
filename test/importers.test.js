@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ddbCharacterId, parseDdbCharacter, parseCharacterJson, mapOpen5eMonster } from '../server/importers.js';
+import { ddbCharacterId, parseDdbCharacter, parseCharacterText, mapOpen5eMonster } from '../server/importers.js';
 
 const stats = (...v) => v.map((value, i) => ({ id: i + 1, value }));
 const none = () => [1, 2, 3, 4, 5, 6].map((id) => ({ id, value: null }));
@@ -58,11 +58,11 @@ test('D&D Beyond: an HP override wins', () => {
 });
 
 test('pasted JSON: detects D&D Beyond exports and plain hand-written sheets', () => {
-  assert.equal(parseCharacterJson(JSON.stringify(fighter)).source, 'D&D Beyond');
-  const simple = parseCharacterJson('{"name":"Ilyra","maxHp":24,"ac":12,"dex":16}');
+  assert.equal(parseCharacterText(JSON.stringify(fighter)).source, 'D&D Beyond');
+  const simple = parseCharacterText('{"name":"Ilyra","maxHp":24,"ac":12,"dex":16}');
   assert.deepEqual([simple.name, simple.maxHp, simple.ac, simple.initMod], ['Ilyra', 24, 12, 3]);
-  assert.throws(() => parseCharacterJson('{nope'), /not valid JSON/);
-  assert.throws(() => parseCharacterJson('{"name":"x"}'), /maxHp/);
+  assert.throws(() => parseCharacterText('{nope'), /not valid JSON/);
+  assert.throws(() => parseCharacterText('{"name":"x"}'), /maxHp/);
 });
 
 test('character links and ids', () => {
@@ -76,4 +76,51 @@ test('Open5e monsters map in both API shapes', () => {
   assert.deepEqual(v1, { name: 'Goblin', maxHp: 7, ac: 15, initMod: 2, cr: '1/4', type: 'Small humanoid', source: '5e Core Rules' });
   const v2 = mapOpen5eMonster({ name: 'Goblin', armor_class: 15, hit_points: 7, ability_scores: { dexterity: 14 }, challenge_rating_text: '1/4', size: { name: 'Small' }, type: { name: 'Humanoid' }, document: { name: 'SRD' } });
   assert.deepEqual([v2.maxHp, v2.ac, v2.initMod, v2.cr, v2.type, v2.source], [7, 15, 2, '1/4', 'Small Humanoid', 'SRD']);
+});
+
+const sheet = `name: Mirelle
+className: Storm Warden
+level: 3
+abilities:
+  strength:
+    score: 9
+    proficient: false
+  dexterity:
+    score: 15
+    proficient: false
+armorClass: 12
+initiativeOverride: 2
+hitPointMaximum: 21
+currentHitPoints: 17
+temporaryHitPoints: 0
+equipment:
+  - id: cc68a7d5
+    name: Leather Tunic
+    description: +2 max HP while worn
+backstory: >-
+  Born in the lower districts: quick hands, quicker feet.
+
+  A second paragraph with "quotes" and a colon: here.
+`;
+
+test('YAML sheet: the file numbers are used as written', () => {
+  const c = parseCharacterText(sheet);
+  assert.deepEqual([c.name, c.maxHp, c.hp, c.tempHp, c.ac, c.initMod, c.summary], ['Mirelle', 21, 17, 0, 12, 2, 'Storm Warden 3']);
+});
+
+test('YAML sheet: DEX fills in when initiative or AC is not set', () => {
+  const c = parseCharacterText(sheet.replace('initiativeOverride: 2', 'initiativeOverride: null').replace('armorClass: 12\n', ''));
+  assert.deepEqual([c.initMod, c.ac], [2, 12]);
+  const over = parseCharacterText(sheet.replace('initiativeOverride: 2', 'initiativeOverride: 7'));
+  assert.equal(over.initMod, 7, 'an override beats DEX');
+});
+
+test('YAML sheet: the same sheet as JSON reads identically, and junk is refused politely', () => {
+  const asJson = JSON.stringify({ name: 'Mirelle', hitPointMaximum: 21, currentHitPoints: 30, armorClass: 12, abilities: { dexterity: { score: 8 } } });
+  const c = parseCharacterText(asJson);
+  assert.deepEqual([c.maxHp, c.hp, c.initMod], [21, 21, -1], 'current HP is capped at the maximum');
+  assert.throws(() => parseCharacterText('just some words'), /character sheet/);
+  assert.throws(() => parseCharacterText('name: [unclosed'), /YAML or JSON/);
+  assert.throws(() => parseCharacterText('name: NoHp\nhitPointMaximum: 0'), /hitPointMaximum/);
+  assert.throws(() => parseCharacterText('   '), /empty/);
 });

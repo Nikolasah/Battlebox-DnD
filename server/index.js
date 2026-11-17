@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import * as R from './rooms.js';
-import { ddbCharacterId, parseDdbCharacter, parseCharacterJson, mapOpen5eMonster } from './importers.js';
+import { ddbCharacterId, parseDdbCharacter, parseCharacterText, mapOpen5eMonster } from './importers.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PUBLIC = path.join(ROOT, 'public');
@@ -103,7 +103,7 @@ app.post('/api/import/ddb', api(async (req) => {
   return parseDdbCharacter(data);
 }));
 
-app.post('/api/import/json', api((req) => parseCharacterJson(req.body?.text)));
+app.post(['/api/import/sheet', '/api/import/json'], api((req) => parseCharacterText(req.body?.text)));
 
 const monsterCache = new Map();
 app.get('/api/monsters', api(async (req) => {
@@ -160,6 +160,7 @@ function emit(room, events) {
 const dmActions = {
   add_enemy: (room, m) => { R.addEnemies(room, m); },
   add_pc: (room, m) => { R.addPc(room, m); },
+  import_pc: (room, m) => { R.upsertPc(room, m); },
   update: (room, m) => { R.updateCombatant(room, m.id, m.patch); },
   hp: (room, m) => { R.applyHp(room, m.id, Number(m.delta)); },
   condition: (room, m) => { R.setCondition(room, m.id, m.name, !!m.on); },
@@ -191,7 +192,11 @@ const playerActions = {
     const playerName = R.text(m.playerName, 30);
     if (!R.text(m.character?.name, 40)) throw new R.UserError('Give your character a name.');
     if (room.combatants.filter((c) => c.kind === 'pc').length >= 12) throw new R.UserError('This table is full.');
-    R.addPc(room, { ...m.character, playerName }, conn.key);
+    // Same name as a saved character: take that seat and refresh its stats instead of making a twin.
+    const name = R.text(m.character.name, 40).toLowerCase();
+    const twin = room.combatants.find((c) => c.kind === 'pc' && c.name.toLowerCase() === name);
+    if (twin && connectedPcIds(room).has(twin.id)) throw new R.UserError(`Someone is already playing ${twin.name}.`);
+    R.upsertPc(room, { ...m.character, playerName }, conn.key);
   },
   claim: (room, m, conn) => {
     if (R.pcOf(room, conn.key)) return;

@@ -36,6 +36,8 @@ input[type=text], input[type=number], input[type=search], input[type=url], texta
   width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
 }
 textarea { resize: vertical; min-height: 72px; }
+input[type=file] { width: 100%; padding: 8px; border-radius: 10px; border: 1px dashed #4a5060; background: var(--bg); color: var(--muted); font-size: 13px; }
+input[type=file]::file-selector-button { min-height: 36px; margin-right: 10px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font: 500 13px var(--body); cursor: pointer; }
 input::placeholder, textarea::placeholder { color: #8b8980; }
 input[type=number] { -moz-appearance: textfield; }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }

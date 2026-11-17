@@ -35,7 +35,7 @@
     <div class="tabs" role="group" aria-label="How to add your character">
       <button type="button" data-tab="type" aria-pressed="true">Type it in</button>
       <button type="button" data-tab="ddb" aria-pressed="false">D&amp;D Beyond</button>
-      <button type="button" data-tab="json" aria-pressed="false">Paste JSON</button>
+      <button type="button" data-tab="json" aria-pressed="false">Sheet file</button>
     </div>
     <div class="banner" id="tab-ddb" hidden>
       <label class="field">Character link
@@ -45,11 +45,14 @@
       <p class="muted small">The character's privacy must be set to Public on D&amp;D Beyond.</p>
     </div>
     <div class="banner" id="tab-json" hidden>
-      <label class="field">Character JSON
-        <textarea id="jsonText" placeholder='{"name":"Ilyra","maxHp":24,"ac":12,"initMod":3}'></textarea>
+      <label class="field">Your sheet file (.yaml or .json)
+        <input id="sheetFile" type="file" accept=".yaml,.yml,.json,.txt,application/json,text/*">
       </label>
-      <button class="btn" type="button" id="jsonRead">Read it</button>
-      <p class="muted small">Works with a D&amp;D Beyond export or a simple sheet like the example.</p>
+      <label class="field">Or paste the sheet here
+        <textarea id="jsonText" spellcheck="false" placeholder="name: Ilyra&#10;hitPointMaximum: 24&#10;armorClass: 12&#10;initiativeOverride: 3"></textarea>
+      </label>
+      <button class="btn" type="button" id="jsonRead">Read pasted sheet</button>
+      <p class="muted small">Reads name, hit points, armour class and initiative. Joining with the name of a saved character updates that character.</p>
     </div>
     <p class="small" id="importNote" style="color:var(--good)" hidden></p>
 

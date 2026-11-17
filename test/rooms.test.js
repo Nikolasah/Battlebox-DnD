@@ -130,3 +130,18 @@ test('a player only sees claimable characters while they have none', () => {
   assert.deepEqual(R.playerView(r, 'new-key', new Set([pc.id])).claimable, [], 'not while someone is playing her');
   assert.equal(R.playerView(r, 'old-key').you, pc.id);
 });
+
+test('importing a sheet again updates the character instead of duplicating it', () => {
+  const r = room();
+  const first = R.upsertPc(r, { name: 'Pijo', maxHp: 21, hp: 17, ac: 12, initMod: 2 });
+  assert.equal(first.created, true);
+  R.setCondition(r, first.pc.id, 'Poisoned', true);
+  const again = R.upsertPc(r, { name: 'pijo', maxHp: 28, hp: 28, ac: 13, initMod: 2 }, 'phone-key');
+  assert.equal(again.created, false);
+  assert.equal(r.combatants.length, 1);
+  const pc = r.combatants[0];
+  assert.deepEqual([pc.name, pc.maxHp, pc.hp, pc.ac, pc.owner], ['Pijo', 28, 28, 13, 'phone-key']);
+  assert.deepEqual(pc.conditions, ['Poisoned'], 'conditions survive a re-import');
+  R.upsertPc(r, { name: 'Pijo', maxHp: 28, hp: '', ac: 13, initMod: 2 });
+  assert.equal(pc.hp, 28, 'a typed-in rejoin without current HP leaves HP alone');
+});

@@ -15,7 +15,7 @@ A combat table for D&D 5e that works like a Jackbox game. The DM runs the fight 
 - **Turn tracking.** The table screen shows whose turn it is, who is next, the round, party HP and conditions. The active player's phone buzzes and gets an "End my turn" button. `N` advances the turn from the console.
 - **Fast HP.** Type a number on a row and press Enter for damage or Shift+Enter to heal. Temporary HP is spent first. Only the DM edits HP.
 - **Enemies.** Add them by hand (name, HP, AC, initiative modifier, count) or search open-licence stat blocks and fill the form in one click. Enemies can start hidden and be revealed mid-fight; while a hidden enemy acts, the table reads "An unseen foe acts…".
-- **Character import.** Players type four numbers, paste a D&D Beyond character link, or paste JSON.
+- **Character import.** Players type four numbers, upload or paste a YAML or JSON sheet, or paste a D&D Beyond character link. The DM can load the whole party's sheet files at once.
 - **Dice on the big screen.** Any phone can roll d4 to d20 with a modifier, advantage or disadvantage, labelled Attack, Damage, Save or Check. The DM can roll privately or publicly.
 - **Secret choice.** Send a prompt with up to four options or a write-in. Answers reach only the DM, who reveals them on the table or closes the round and narrates.
 - **Saved to disk.** Each room is one JSON file. A restart mid-fight loses nothing, and next session players pick their existing character from a list.
@@ -75,9 +75,30 @@ Any other reverse proxy works too, as long as it forwards WebSocket upgrades on 
 | --- | --- | --- |
 | Type it in | Name, max HP, AC, initiative modifier | Always works |
 | D&D Beyond link | Pastes `dndbeyond.com/characters/12345678` | The character's privacy must be Public. The server reads D&D Beyond's character JSON, which is unofficial and can change. |
-| Paste JSON | Pastes a D&D Beyond export or `{"name":"Ilyra","maxHp":24,"ac":12,"initMod":3}` | `dex` (the score) can stand in for `initMod` |
+| Sheet file | Uploads or pastes a `.yaml` / `.json` sheet | See the fields below. The DM can also import several files at once from the console. |
+| Minimal JSON | Pastes `{"name":"Ilyra","maxHp":24,"ac":12,"initMod":3}` or a D&D Beyond export | `dex` (the score) can stand in for `initMod` |
 
 An import only fills the form. The player checks the numbers before taking a seat. HP and initiative follow the sheet's maths; AC covers armour, shields, flat bonuses and unarmoured defence, and can miss unusual features.
+
+### Sheet files
+
+A YAML (or JSON) sheet is read through these keys; everything else in the file is ignored:
+
+```yaml
+name: Pijo
+className: Sanguine Mage     # shown next to the import, optional
+level: 2                     # optional
+hitPointMaximum: 21
+currentHitPoints: 17         # optional, defaults to the maximum
+temporaryHitPoints: 0        # optional
+armorClass: 12               # optional, defaults to 10 + DEX modifier
+initiativeOverride: 2        # optional, defaults to the DEX modifier
+abilities:
+  dexterity:
+    score: 15
+```
+
+The numbers are used exactly as written; nothing is recalculated from equipment. Importing a sheet whose name matches a character already at the table updates that character (max HP, current HP, temp HP, AC, initiative) and keeps its conditions and place in the turn order, so editing the file and importing it again is the way to change stats between or during fights.
 
 Monster lookup uses the [Open5e](https://open5e.com) API. If the server has no internet access, add enemies by hand.
 
@@ -112,7 +133,7 @@ npm test      # rules and importers
 
 ```
 server/rooms.js      every rule: initiative, turns, HP, prompts, and what each screen may see
-server/importers.js  D&D Beyond, plain JSON and Open5e mapping
+server/importers.js  YAML/JSON sheets, D&D Beyond and Open5e mapping
 server/index.js      HTTP, WebSocket and saving to disk
 public/              the three screens, plain HTML/CSS/JS, no build step
 test/                node:test suites

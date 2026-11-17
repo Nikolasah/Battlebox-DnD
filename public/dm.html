@@ -53,10 +53,16 @@
         <div class="results" id="monsterResults"></div>
       </section>
 
-      <details class="panel">
-        <summary style="cursor:pointer;font-weight:600">Add a character yourself</summary>
+      <details class="panel" open>
+        <summary style="cursor:pointer;font-weight:600">Add or import characters</summary>
+        <div class="stack" style="margin-top:12px">
+          <label class="field">Import sheet files (.yaml or .json)
+            <input id="sheetFiles" type="file" multiple accept=".yaml,.yml,.json,.txt,application/json,text/*">
+          </label>
+          <p class="muted small">Pick one file or the whole party. A sheet whose name matches a character already here updates that character's HP, AC and initiative instead of adding a copy.</p>
+        </div>
         <form id="pcForm" class="formgrid" style="margin-top:12px" autocomplete="off">
-          <p class="muted small wide">For a player without a phone, or an ally you control. Players normally add their own.</p>
+          <p class="muted small wide">Or type one in, for a player without a phone or an ally you control.</p>
           <label class="field half">Character <input name="name" type="text" maxlength="40" required></label>
           <label class="field half">Player <input name="playerName" type="text" maxlength="30"></label>
           <label class="field">HP <input name="maxHp" type="number" min="1" value="10" required></label>

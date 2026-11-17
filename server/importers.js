@@ -1,4 +1,5 @@
 // Turning other people's data into the four numbers combat needs: max HP, AC, initiative modifier, name.
+import { parse as parseYaml } from 'yaml';
 import { UserError } from './rooms.js';
 
 const abilityMod = (score) => Math.floor((Number(score) - 10) / 2);
@@ -110,11 +111,49 @@ export function parseSimpleCharacter(o) {
   };
 }
 
-export function parseCharacterJson(textValue) {
+/**
+ * The group's own sheet format, usually kept as YAML:
+ * name, className, level, hitPointMaximum, currentHitPoints, temporaryHitPoints, armorClass,
+ * initiativeOverride, abilities.<ability>.score.
+ * The file's numbers are taken as written; DEX only fills in for a missing AC or initiative.
+ */
+export function parseSheetCharacter(o) {
+  const maxHp = num(o.hitPointMaximum);
+  if (!o.name || maxHp === undefined || maxHp < 1) throw new UserError('That sheet needs a "name" and a "hitPointMaximum".');
+  const dex = abilityMod(num(o.abilities?.dexterity?.score) ?? 10);
+  return {
+    name: String(o.name).slice(0, 40),
+    maxHp,
+    hp: Math.max(0, Math.min(maxHp, num(o.currentHitPoints) ?? maxHp)),
+    tempHp: Math.max(0, num(o.temporaryHitPoints) ?? 0),
+    ac: num(o.armorClass) ?? 10 + dex,
+    initMod: num(o.initiativeOverride) ?? dex,
+    summary: [o.className, num(o.level)].filter((x) => x !== undefined && x !== null && x !== '').join(' ').slice(0, 40),
+    source: 'sheet file',
+    note: '',
+  };
+}
+
+/** Whatever a player pastes or uploads: a YAML or JSON sheet, a D&D Beyond export, or a minimal hand-written one. */
+export function parseCharacterText(textValue) {
+  const raw = String(textValue ?? '').trim();
+  if (!raw) throw new UserError('That file is empty.');
+  if (raw.length > 1_000_000) throw new UserError('That file is too large to be a character sheet.');
   let data;
-  try { data = JSON.parse(String(textValue)); } catch { throw new UserError('That is not valid JSON.'); }
+  if (raw[0] === '{') {
+    try { data = JSON.parse(raw); } catch { throw new UserError('That is not valid JSON.'); }
+  } else {
+    try {
+      data = parseYaml(raw, { maxAliasCount: 50 });
+    } catch (err) {
+      const line = err?.linePos?.[0]?.line;
+      throw new UserError(`Could not read that as YAML or JSON${line ? `: the problem is on line ${line}` : ''}.`);
+    }
+  }
   const inner = data?.data ?? data;
-  if (Array.isArray(inner?.stats) && ('baseHitPoints' in inner || 'classes' in inner)) return parseDdbCharacter(data);
+  if (!inner || typeof inner !== 'object' || Array.isArray(inner)) throw new UserError('That does not look like a character sheet.');
+  if (Array.isArray(inner.stats) && ('baseHitPoints' in inner || 'classes' in inner)) return parseDdbCharacter(data);
+  if ('hitPointMaximum' in inner) return parseSheetCharacter(inner);
   return parseSimpleCharacter(inner);
 }
 

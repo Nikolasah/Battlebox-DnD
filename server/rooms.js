@@ -89,6 +89,21 @@ export function addPc(room, d, owner = null) {
   return c;
 }
 
+/**
+ * Add a character, or refresh the one that already has this name. People edit a sheet file and
+ * import it again to change stats, and that must not leave two copies of the same character.
+ */
+export function upsertPc(room, d, owner = null) {
+  const name = text(d.name, 40).toLowerCase();
+  const existing = name && room.combatants.find((c) => c.kind === 'pc' && c.name.toLowerCase() === name);
+  if (!existing) return { pc: addPc(room, d, owner), created: true };
+  updateCombatant(room, existing.id, { maxHp: d.maxHp, hp: d.hp, tempHp: d.tempHp, ac: d.ac, initMod: d.initMod });
+  if (text(d.playerName, 30)) existing.playerName = text(d.playerName, 30);
+  if (owner) existing.owner = owner;
+  log(room, `${existing.name}'s sheet was updated.`, true);
+  return { pc: existing, created: false };
+}
+
 export function addEnemies(room, d, rng = cryptoRng) {
   const base = text(d.name, 40) || 'Enemy';
   const count = int(d.count, 1, 20, 1);

@@ -46,6 +46,27 @@ $('#pcForm').addEventListener('submit', (e) => {
   e.currentTarget.reset();
 });
 
+// Sheet files: each one is read by the server, then added, or used to refresh the character of the same name.
+$('#sheetFiles').addEventListener('change', async (e) => {
+  const input = e.currentTarget;
+  const added = []; const updated = []; const failed = [];
+  const known = new Set((S?.combatants || []).filter((c) => c.kind === 'pc').map((c) => c.name.toLowerCase()));
+  for (const file of [...input.files]) {
+    try {
+      if (file.size > 1_000_000) throw new Error('too large');
+      const c = await api('/api/import/sheet', { text: await file.text() });
+      (known.has(c.name.toLowerCase()) ? updated : added).push(c.name);
+      known.add(c.name.toLowerCase());
+      send('import_pc', c);
+    } catch (err) {
+      failed.push(`${file.name}: ${err.message}`);
+    }
+  }
+  input.value = '';
+  const parts = [added.length ? `Added ${added.join(', ')}` : '', updated.length ? `Updated ${updated.join(', ')}` : '', ...failed].filter(Boolean);
+  toast(parts.join(' · '), failed.length ? 'bad' : 'good');
+});
+
 $('#promptForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = e.currentTarget.elements;

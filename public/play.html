@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15171c">
+<title>BattleBox</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="offline" id="offline" hidden>Connection lost. Reconnecting…</div>
+
+<main class="phone" id="gone" hidden>
+  <h1>No table with that code</h1>
+  <p class="muted">Check the four letters on your DM's screen.</p>
+  <a class="btn" href="/">Try another code</a>
+</main>
+
+<!-- Join: static markup so live updates never wipe what someone is typing -->
+<main class="phone" id="joinView" hidden>
+  <div class="stack" style="gap:4px">
+    <span class="eyebrow" id="joinTable"></span>
+    <h1>Join the table</h1>
+  </div>
+  <section class="banner" id="returning" hidden>
+    <span class="eyebrow">Been here before? Pick your character</span>
+    <div class="stack" id="claimables" style="gap:8px"></div>
+  </section>
+  <form class="stack" id="joinForm" autocomplete="off">
+    <label class="field">Your name <input name="playerName" type="text" maxlength="30" autocomplete="given-name" required></label>
+
+    <div class="tabs" role="group" aria-label="How to add your character">
+      <button type="button" data-tab="type" aria-pressed="true">Type it in</button>
+      <button type="button" data-tab="ddb" aria-pressed="false">D&amp;D Beyond</button>
+      <button type="button" data-tab="json" aria-pressed="false">Paste JSON</button>
+    </div>
+    <div class="banner" id="tab-ddb" hidden>
+      <label class="field">Character link
+        <input id="ddbRef" type="url" inputmode="url" placeholder="dndbeyond.com/characters/12345678">
+      </label>
+      <button class="btn" type="button" id="ddbFetch">Import character</button>
+      <p class="muted small">The character's privacy must be set to Public on D&amp;D Beyond.</p>
+    </div>
+    <div class="banner" id="tab-json" hidden>
+      <label class="field">Character JSON
+        <textarea id="jsonText" placeholder='{"name":"Ilyra","maxHp":24,"ac":12,"initMod":3}'></textarea>
+      </label>
+      <button class="btn" type="button" id="jsonRead">Read it</button>
+      <p class="muted small">Works with a D&amp;D Beyond export or a simple sheet like the example.</p>
+    </div>
+    <p class="small" id="importNote" style="color:var(--good)" hidden></p>
+
+    <label class="field">Character name <input name="name" type="text" maxlength="40" required></label>
+    <div class="formgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <label class="field">Max HP <input name="maxHp" type="number" min="1" max="9999" inputmode="numeric" required></label>
+      <label class="field">AC <input name="ac" type="number" min="0" max="99" inputmode="numeric" required></label>
+      <label class="field">Initiative <input name="initMod" type="number" min="-20" max="30" inputmode="text" value="0" required></label>
+    </div>
+    <input name="hp" type="hidden"><input name="tempHp" type="hidden">
+    <p class="muted small">Initiative is your modifier (usually your DEX modifier), like 3 or -1.</p>
+    <button class="btn primary big" type="submit">Take a seat</button>
+  </form>
+</main>
+
+<main class="phone" id="playView" hidden>
+  <header class="stack" style="gap:10px">
+    <div class="me">
+      <div class="grow">
+        <span class="eyebrow" id="meTable"></span>
+        <h1 id="meName" style="font-size:26px"></h1>
+      </div>
+      <div style="text-align:right">
+        <div class="hpnum" id="meHp"></div>
+        <div class="muted small" id="meAc"></div>
+      </div>
+    </div>
+    <div id="meBar"></div>
+    <div id="meChips"></div>
+  </header>
+
+  <div id="status"></div>
+
+  <section class="panel stack">
+    <h2 style="margin:0">Roll on the table screen</h2>
+    <div class="seg" id="labelSeg" role="group" aria-label="What the roll is for"></div>
+    <div class="seg" id="modeSeg" role="group" aria-label="d20 mode"></div>
+    <div class="formgrid" style="grid-template-columns:1fr 1fr">
+      <label class="field">Dice <div class="stepper"><button type="button" id="countDown" aria-label="Fewer dice">−</button><output id="countOut">1</output><button type="button" id="countUp" aria-label="More dice">+</button></div></label>
+      <label class="field">Modifier <div class="stepper"><button type="button" id="modDown" aria-label="Lower modifier">−</button><output id="modOut">+0</output><button type="button" id="modUp" aria-label="Raise modifier">+</button></div></label>
+    </div>
+    <div class="dicepad" id="dicepad"></div>
+    <div id="myRoll"></div>
+  </section>
+
+  <button class="btn ghost sm" type="button" id="leave" style="align-self:center">This is not my character</button>
+</main>
+
+<script type="module" src="/js/play.js"></script>
+</body>
+</html>

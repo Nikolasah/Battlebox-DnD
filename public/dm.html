@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>DM console · BattleBox</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="offline" id="offline" hidden>Connection lost. Reconnecting…</div>
+<main class="landing" id="blocked" hidden>
+  <h1 id="blockedTitle">This DM link does not work</h1>
+  <p class="muted">Open the table from the browser you created it in, or use the full DM link including everything after the #.</p>
+  <a class="btn" href="/">Back to start</a>
+</main>
+
+<div class="dm" id="app" hidden>
+  <header class="dm-top">
+    <div class="grow">
+      <span class="eyebrow">DM console</span>
+      <h1 id="roomName"></h1>
+    </div>
+    <div class="codebox"><span class="muted small">Players join with</span><b id="code"></b></div>
+    <button class="btn" id="copyLink" type="button">Copy player link</button>
+    <a class="btn" id="openTable" target="_blank" rel="noopener">Open table screen</a>
+  </header>
+
+  <div class="dm-grid">
+    <div class="col col-add">
+      <form class="panel" id="enemyForm" autocomplete="off">
+        <h2>Add enemies</h2>
+        <div class="formgrid">
+          <label class="field wide">Name <input name="name" type="text" maxlength="40" placeholder="Goblin" required></label>
+          <label class="field">HP <input name="maxHp" type="number" min="1" max="9999" value="10" inputmode="numeric" required></label>
+          <label class="field">AC <input name="ac" type="number" min="0" max="99" value="12" inputmode="numeric"></label>
+          <label class="field">Init <input name="initMod" type="number" min="-20" max="30" value="0" inputmode="numeric"></label>
+          <label class="field">Count <input name="count" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
+          <label class="check wide"><input name="hidden" type="checkbox"> Hidden from the table until I reveal it</label>
+          <button class="btn primary wide" type="submit">Add to the fight</button>
+        </div>
+      </form>
+
+      <section class="panel">
+        <h2>Monster lookup</h2>
+        <label class="field">Search open-licence stat blocks
+          <input id="monsterQ" type="search" placeholder="owlbear, bandit, dragon…" autocomplete="off">
+        </label>
+        <p class="muted small" id="monsterHint" style="margin:8px 0">Pick a result to fill the form above, then set the count.</p>
+        <div class="results" id="monsterResults"></div>
+      </section>
+
+      <details class="panel">
+        <summary style="cursor:pointer;font-weight:600">Add a character yourself</summary>
+        <form id="pcForm" class="formgrid" style="margin-top:12px" autocomplete="off">
+          <p class="muted small wide">For a player without a phone, or an ally you control. Players normally add their own.</p>
+          <label class="field half">Character <input name="name" type="text" maxlength="40" required></label>
+          <label class="field half">Player <input name="playerName" type="text" maxlength="30"></label>
+          <label class="field">HP <input name="maxHp" type="number" min="1" value="10" required></label>
+          <label class="field">AC <input name="ac" type="number" min="0" value="10"></label>
+          <label class="field half">Initiative modifier <input name="initMod" type="number" value="0"></label>
+          <button class="btn wide" type="submit">Add character</button>
+        </form>
+      </details>
+    </div>
+
+    <div class="col">
+      <div class="phasebar" id="phasebar"></div>
+      <div class="clist" id="clist"></div>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2>Latest rolls</h2>
+        <div class="dm-rolls" id="rolls" aria-live="polite"></div>
+        <p class="muted small" id="noRolls">Rolls from phones and your own dice land here.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Ask the table</h2>
+        <form id="promptForm" class="stack" autocomplete="off">
+          <label class="field">Prompt
+            <textarea name="text" maxlength="240" placeholder="The dragon inhales. What do you do?" required></textarea>
+          </label>
+          <div class="formgrid">
+            <label class="field half">Option A <input name="o0" type="text" maxlength="80"></label>
+            <label class="field half">Option B <input name="o1" type="text" maxlength="80"></label>
+            <label class="field half">Option C <input name="o2" type="text" maxlength="80"></label>
+            <label class="field half">Option D <input name="o3" type="text" maxlength="80"></label>
+          </div>
+          <label class="check"><input name="writeIn" type="checkbox" checked> Let players write their own answer</label>
+          <button class="btn primary" type="submit">Send to phones</button>
+          <p class="muted small">Answers are private to you until you reveal them.</p>
+        </form>
+        <div id="promptLive" class="stack" hidden></div>
+      </section>
+
+      <section class="panel stack">
+        <h2 style="margin:0">DM dice</h2>
+        <div class="formgrid">
+          <label class="field half">How many <input id="dmCount" type="number" min="1" max="12" value="1"></label>
+          <label class="field half">Modifier <input id="dmMod" type="number" min="-99" max="99" value="0"></label>
+        </div>
+        <div class="dicebar" id="dmDice"></div>
+        <label class="check"><input id="dmPublic" type="checkbox"> Show this roll on the table screen</label>
+      </section>
+
+      <section class="panel stack">
+        <h2 style="margin:0">Table screen</h2>
+        <label class="field">Enemy health shown to players
+          <select id="enemyHp">
+            <option value="status">Status only (Healthy, Bloodied, Critical)</option>
+            <option value="exact">Exact hit points</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<dialog id="editDlg">
+  <form method="dialog" class="stack" id="editForm" autocomplete="off">
+    <h2 id="editTitle">Edit</h2>
+    <div class="formgrid">
+      <label class="field wide">Name <input name="name" type="text" maxlength="40" required></label>
+      <label class="field">HP <input name="hp" type="number" min="0"></label>
+      <label class="field">Max HP <input name="maxHp" type="number" min="1"></label>
+      <label class="field">Temp HP <input name="tempHp" type="number" min="0"></label>
+      <label class="field">AC <input name="ac" type="number" min="0"></label>
+      <label class="field half">Initiative modifier <input name="initMod" type="number"></label>
+      <label class="field half">Initiative total <input name="init" type="number" placeholder="not rolled"></label>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn danger" type="button" id="editRemove">Remove from fight</button>
+      <div class="row">
+        <button class="btn ghost" type="button" id="editCancel">Cancel</button>
+        <button class="btn primary" type="submit" value="save">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="/js/dm.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# docker compose up -d                         -> http://localhost:3000 (same network only)
+# docker compose --profile quick up            -> adds a temporary public https URL (printed in the tunnel logs)
+# docker compose --profile tunnel up -d        -> adds your own Cloudflare Tunnel (set TUNNEL_TOKEN in .env)
+services:
+  battlebox:
+    build: .
+    image: battlebox:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - battlebox-data:/app/data
+
+  # Throwaway public URL, no Cloudflare account needed. The address changes on every start.
+  quick-tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["quick"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://battlebox:3000
+    depends_on: [battlebox]
+
+  # Stable address on your own domain. Create the tunnel in the Cloudflare Zero Trust dashboard,
+  # point its public hostname at http://battlebox:3000, and put the token in .env.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    depends_on: [battlebox]
+
+volumes:
+  battlebox-data:
